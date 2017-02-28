@@ -22,12 +22,14 @@ static unsigned int   ORGB417PB::nibble = 0;
 static unsigned int   ORGB417PB::bits = 0;
 static unsigned long  ORGB417PB::value = 0;
 
-ORGB417PB::ORGB417PB(int interrupt) {
+ORGB417PB::ORGB417PB(int interrupt, int transmitter) {
   state   = 0;
   prev_ts = 0;
   nibble  = 0;
   bits    = 0;
   value   = 0;
+  tx      = transmitter;
+  pinMode(tx, OUTPUT);
   attachInterrupt(interrupt, isr, CHANGE);
 }
 
@@ -42,6 +44,29 @@ void ORGB417PB::clear_code() {
 
 long ORGB417PB::code() {
   return ORGB417PB::value;
+}
+
+void ORGB417PB::send(unsigned long code, int repeat) {
+  for (int j = 0; j < repeat; j++) {
+    digitalWrite(tx, HIGH);
+    delayMicroseconds(400);
+    digitalWrite(tx, LOW);
+    delayMicroseconds(2400);
+    for (int i = 23; i >= 0; i--) {
+      int low, high;
+      if ((code & (1l<<i)) == 0) {
+        low = PULSE * 1;
+        high = PULSE * 3;
+      } else {
+        low = PULSE * 3;
+        high = PULSE * 1;
+      }
+      digitalWrite(tx, HIGH);
+      delayMicroseconds(low);
+      digitalWrite(tx, LOW);
+      delayMicroseconds(high);
+    }
+  }
 }
 
 void ORGB417PB::isr() {
